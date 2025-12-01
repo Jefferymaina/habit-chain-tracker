@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl,
+        emailRedirectTo: https://jefferymaina.github.io/HabitChainTracker_prototype1/#/auth,
         data: {
           full_name: name,
           name: name,
