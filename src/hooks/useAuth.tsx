@@ -15,6 +15,14 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper to pick the correct base URL
+function getBaseUrl() {
+  if (typeof window === 'undefined') return '';
+  return window.location.hostname === 'localhost'
+    ? 'http://localhost:8080/HabitChainTracker_prototype1'
+    : 'https://jefferymaina.github.io/HabitChainTracker_prototype1';
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -22,13 +30,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -41,12 +49,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, name?: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-const { error } = await supabase.auth.signUp({
-  email,
-  password,
-});
+    const baseUrl = getBaseUrl();
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        // Where to send email-confirmation links (if enabled)
+        emailRedirectTo: `${baseUrl}/#/auth`,
+        data: name ? { full_name: name } : undefined,
+      },
+    });
+
     return { error };
   };
 
@@ -59,12 +73,16 @@ const { error } = await supabase.auth.signUp({
   };
 
   const signInWithGoogle = async () => {
+    const baseUrl = getBaseUrl();
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/`,
+        // After Google login, come back to your app
+        redirectTo: `${baseUrl}/#/`,
       },
     });
+
     return { error };
   };
 
@@ -73,14 +91,20 @@ const { error } = await supabase.auth.signUp({
   };
 
   const resetPassword = async (email: string) => {
+    const baseUrl = getBaseUrl();
+
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/#/auth`,
+      // Link in reset-password email will redirect here
+      redirectTo: `${baseUrl}/#/auth`,
     });
+
     return { error };
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signInWithGoogle, signOut, resetPassword }}>
+    <AuthContext.Provider
+      value={{ user, session, loading, signUp, signIn, signInWithGoogle, signOut, resetPassword }}
+    >
       {children}
     </AuthContext.Provider>
   );
