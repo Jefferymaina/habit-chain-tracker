@@ -1,13 +1,17 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
-const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+interface ProtectedRouteProps {
+  children: JSX.Element;
+}
+
+const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  // Wait for Supabase to finish checking the session after OAuth redirect
+  // Wait until Supabase finishes checking the session
   if (loading) {
-    return null; // or a loading spinner component
+    return null; // or a spinner
   }
 
   if (!user) {
