@@ -1,23 +1,3 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-
-const Auth = () => {
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading && user) {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [user, loading, navigate]);
-
-  return (
-    // ...your existing auth/login UI
-  );
-};
-
-export default Auth;
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -37,27 +17,38 @@ import {
 
 type AuthMode = 'login' | 'signup';
 
-export default function Auth() {
+const Auth = () => {
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // form submit loading
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [emailDialogType, setEmailDialogType] = useState<'signup' | 'reset'>('signup');
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
-  const { user, signIn, signUp, signInWithGoogle, resetPassword } = useAuth();
+
+  // rename auth context loading so it doesn't clash with local loading state
+  const {
+    user,
+    loading: authLoading,
+    signIn,
+    signUp,
+    signInWithGoogle,
+    resetPassword,
+  } = useAuth();
+
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // If already logged in, don't stay on /auth → go to /dashboard
   useEffect(() => {
-    if (user) {
-      navigate('/');
+    if (!authLoading && user) {
+      navigate('/dashboard', { replace: true });
     }
-  }, [user, navigate]);
+  }, [authLoading, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,7 +97,7 @@ export default function Auth() {
           });
         }
       }
-    } catch (err) {
+    } catch {
       toast({
         title: 'An error occurred',
         description: 'Please try again later.',
@@ -143,7 +134,7 @@ export default function Auth() {
         setShowEmailDialog(true);
         setForgotPasswordEmail('');
       }
-    } catch (err) {
+    } catch {
       toast({
         title: 'An error occurred',
         description: 'Please try again later.',
@@ -246,9 +237,7 @@ export default function Auth() {
           )}
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : null}
+            {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
             Continue
           </Button>
 
@@ -289,7 +278,6 @@ export default function Auth() {
           </Button>
         </form>
 
-        {/* Forgot password */}
         {mode === 'login' && (
           <p className="text-center mt-4">
             <button
@@ -363,9 +351,7 @@ export default function Auth() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={resetLoading}>
-              {resetLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
+              {resetLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Send reset link
             </Button>
           </form>
@@ -373,4 +359,6 @@ export default function Auth() {
       </Dialog>
     </div>
   );
-}
+};
+
+export default Auth;
