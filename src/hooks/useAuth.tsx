@@ -28,11 +28,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Base URL of your app (used for email & reset-password redirects)
+// Base URL of your app (no hash) – used for redirects from Supabase
 function getBaseUrl() {
   if (typeof window === 'undefined') return '';
 
-  // In Vite, BASE_URL should be "/HabitChainTracker_prototype1/" in prod
+  // In Vite this is usually "/HabitChainTracker_prototype1/" in production
   const basePath = import.meta.env.BASE_URL || '/';
   const cleanBasePath = basePath.endsWith('/')
     ? basePath.slice(0, -1)
@@ -101,13 +101,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = async (): Promise<{ error: Error | null }> => {
-    // IMPORTANT: no redirectTo here → Supabase uses Site URL only,
-    // and app logic (Index/Auth) will send logged-in users to /dashboard.
+    const baseUrl = getBaseUrl();
+
+    // No "#/..." here – Supabase must redirect to a clean URL
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
+      options: {
+        redirectTo: baseUrl,
+      },
     });
 
-    // Optional: debug the URL Supabase is returning
     console.log('Google OAuth start URL:', data?.url, error);
 
     return { error: (error as Error) ?? null };
@@ -123,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const baseUrl = getBaseUrl();
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      // Password-reset email brings the user to /auth
+      // Password-reset email should open your /auth page
       redirectTo: `${baseUrl}/#/auth`,
     });
 
