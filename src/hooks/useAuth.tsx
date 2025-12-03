@@ -29,20 +29,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // If we have a session, and we're on landing/auth, go to dashboard
+      if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+        const hash = window.location.hash; // "#/", "#/auth", "#/dashboard", etc.
+        if (hash === '' || hash === '#/' || hash === '#/auth') {
+          window.location.hash = '#/dashboard';
+        }
+      }
     });
 
-    // THEN check for existing session
+    // Initial session fetch (important after OAuth redirect)
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      if (session) {
+        const hash = window.location.hash;
+        if (hash === '' || hash === '#/' || hash === '#/auth') {
+          window.location.hash = '#/dashboard';
+        }
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -72,13 +87,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
-const signInWithGoogle = async () => {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-  });
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google', // uses Supabase site_url as redirect
+    });
+    return { error };
+  };
 
-  return { error };
-};
   const signOut = async () => {
     await supabase.auth.signOut();
   };
