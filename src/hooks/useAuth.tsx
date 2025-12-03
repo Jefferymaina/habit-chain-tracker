@@ -34,12 +34,14 @@ function getBaseUrl() {
 
   const hostname = window.location.hostname;
 
-  // Your local static build URL
+  // Local static build served at:
+  // http://localhost:8080/HabitChainTracker_prototype1/
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://localhost:8080/HabitChainTracker_prototype1';
+    // NOTE: trailing slash is IMPORTANT here for Vite preview
+    return 'http://localhost:8080/HabitChainTracker_prototype1/';
   }
 
-  // Production GitHub Pages URL
+  // Production GitHub Pages URL (no trailing slash)
   return 'https://jefferymaina.github.io/HabitChainTracker_prototype1';
 }
 
@@ -81,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
       options: {
-        emailRedirectTo: `${baseUrl}/#/auth`,
+        emailRedirectTo: `${baseUrl}#/auth`,
         data: name ? { full_name: name } : undefined,
       },
     });
@@ -104,11 +106,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = async (): Promise<{ error: Error | null }> => {
     const baseUrl = getBaseUrl();
 
-    // MUST include /HabitChainTracker_prototype1 here
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: baseUrl, // e.g. https://jefferymaina.github.io/HabitChainTracker_prototype1
+        // Local:  http://localhost:8080/HabitChainTracker_prototype1/
+        // Prod:   https://jefferymaina.github.io/HabitChainTracker_prototype1
+        redirectTo: baseUrl,
       },
     });
 
@@ -127,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const baseUrl = getBaseUrl();
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${baseUrl}/#/auth`,
+      redirectTo: `${baseUrl}#/auth`,
     });
 
     return { error: (error as Error) ?? null };
