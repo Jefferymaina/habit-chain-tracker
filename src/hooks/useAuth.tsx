@@ -28,20 +28,28 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Explicit base URL for prod (GitHub Pages) vs local build
-function getBaseUrl() {
+// 1) URL used for Google OAuth redirect (NO "#" allowed)
+function getOAuthRedirectUrl() {
   if (typeof window === 'undefined') return '';
 
   const hostname = window.location.hostname;
 
-  // Your local static build URL
+  // Local static build (npm run preview)
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    // NOTE: trailing slash is IMPORTANT here
+    // trailing slash is required for Vite preview
     return 'http://localhost:8080/HabitChainTracker_prototype1/';
   }
 
-  // Production GitHub Pages URL (unchanged)
+  // Production GitHub Pages URL (no hash, no extra slash)
   return 'https://jefferymaina.github.io/HabitChainTracker_prototype1';
+}
+
+// 2) Base app URL used for email / reset redirects
+function getAppBaseUrl() {
+  const oauth = getOAuthRedirectUrl();
+  // For local: oauth ends with "/", keep it.
+  // For prod: oauth has no trailing "/", keep it as is.
+  return oauth;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -50,7 +58,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listen for auth state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -59,7 +66,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    // Initial session check (important after OAuth redirect)
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -76,13 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
     name?: string
   ): Promise<{ error: Error | null }> => {
-    const baseUrl = getBaseUrl();
+    const baseUrl = getAppBaseUrl();
 
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        // baseUrl already ends with '/', so don't add another before '#'
         emailRedirectTo: `${baseUrl}#/auth`,
         data: name ? { full_name: name } : undefined,
       },
@@ -104,19 +109,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = async (): Promise<{ error: Error | null }> => {
-    const baseUrl = getBaseUrl();
+    const redirectUrl = getOAuthRedirectUrl();
+    console.log('Google redirect URL used:', redirectUrl);
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // Local:  http://localhost:8080/HabitChainTracker_prototype1/
-        // Prod:   https://jefferymaina.github.io/HabitChainTracker_prototype1
-        redirectTo: baseUrl,
+        // NO "#" here – this is critical
+        redirectTo: redirectUrl,
       },
     });
 
     console.log('Google OAuth start URL:', data?.url, error);
-
     return { error: (error as Error) ?? null };
   };
 
@@ -127,10 +131,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resetPassword = async (
     email: string
   ): Promise<{ error: Error | null }> => {
-    const baseUrl = getBaseUrl();
+    const baseUrl = getAppBaseUrl();
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      // baseUrl already ends with '/'
       redirectTo: `${baseUrl}#/auth`,
     });
 
