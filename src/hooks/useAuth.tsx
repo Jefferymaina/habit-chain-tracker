@@ -34,14 +34,13 @@ function getBaseUrl() {
 
   const hostname = window.location.hostname;
 
-  // Local static build served at:
-  // http://localhost:8080/HabitChainTracker_prototype1/
+  // Your local static build URL
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    // NOTE: trailing slash is IMPORTANT here for Vite preview
+    // NOTE: trailing slash is IMPORTANT here
     return 'http://localhost:8080/HabitChainTracker_prototype1/';
   }
 
-  // Production GitHub Pages URL (no trailing slash)
+  // Production GitHub Pages URL (unchanged)
   return 'https://jefferymaina.github.io/HabitChainTracker_prototype1';
 }
 
@@ -83,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
       options: {
+        // baseUrl already ends with '/', so don't add another before '#'
         emailRedirectTo: `${baseUrl}#/auth`,
         data: name ? { full_name: name } : undefined,
       },
@@ -130,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const baseUrl = getBaseUrl();
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      // baseUrl already ends with '/'
       redirectTo: `${baseUrl}#/auth`,
     });
 
